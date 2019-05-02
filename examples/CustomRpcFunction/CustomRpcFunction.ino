@@ -13,7 +13,7 @@ static void cb(void *ctx, void *cbdata) {
   double a = mDashGetDouble(ctx, "$.a", -1);
   double b = mDashGetDouble(ctx, "$.b", -1);
   if (a == -1 || b == -1) {
-    mDashReturnError(ctx, "%Q", "expecting params {\"a\": ..., \"b\": ...}");
+    mDashReturnError(ctx, "expecting params {\"a\": ..., \"b\": ...}");
   } else {
     mDashReturnSuccess(ctx, "{%Q: %f}", "result", a + b);
   }
