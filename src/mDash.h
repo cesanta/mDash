@@ -3,10 +3,17 @@
 
 #pragma once
 
-struct mDash {
-  void (*begin)(const char *id, const char *password);
-  void (*publish)(const char *topic, const char *message);
-  void (*subscribe)(const char *topic);
-  void (*set_log_level)(int log_level);
-};
-extern struct mDash mDash;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define mDashInit(x, y) mDashInitEx((x), (y), __FILE__)
+
+void mDashInitEx(const char *id, const char *password, const char *name);
+void mDashSetLogLevel(int logLevel);
+void mDashPublish(const char *topic, const char *message);
+void mDashSubscribe(const char *topic);
+
+#ifdef __cplusplus
+}
+#endif
