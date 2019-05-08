@@ -9,9 +9,9 @@
 // passed as parameters: {"a": 1.23, "b": 4.56}
 // See https://forum.mdash.net/t/rpc-overview/36 for details
 static void myfunc(void *ctx, void *cbdata) {
-  double a = mDashGetDouble(ctx, "$.a", -1);
-  double b = mDashGetDouble(ctx, "$.b", -1);
-  if (a == -1 || b == -1) {
+  double a, b;
+  const char *json = mDashGetParams(ctx);
+  if (mDashGetNum(json, "$.a", &a) == 0 || mDashGetNum(json, "$.b", &b) == 0) {
     mDashReturnError(ctx, "expecting params {\"a\": ..., \"b\": ...}");
   } else {
     mDashReturnSuccess(ctx, "{%Q: %f}", "result", a + b);
