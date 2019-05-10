@@ -19,7 +19,7 @@ void mDashInitWithWifi(const char *wifi_name, const char *wifi_pass,
                        const char *app_name);
 void mDashInit(const char *id, const char *pass, const char *app_name);
 void mDashOn(void (*fn)(int, void *), void *);
-void mDashSetLogLevel(int logLevel);  // 0 - no logs, 3 - debug logs
+void mDashSetLogLevel(int logLevel);
 const char *mDashGetDeviceID(void);
 
 // MQTT API
