@@ -7,17 +7,39 @@
 extern "C" {
 #endif
 
-#define mDashStartWithWifi(a, b, c, d) \
-  mDashInitWithWifi((a), (b), (c), (d), __FILE__, __DATE__ "-" __TIME__)
-#define mDashStart(a, b) mDashInit((a), (b), __FILE__, __DATE__ "-" __TIME__)
+#if ARDUINO
+#define __TOSTR(x) #x
+#define STR(x) __TOSTR(x)
+#ifndef ARDUINO_VARIANT
+#define ARDUINO_VARIANT "?"
+#endif
+#define MDASH_FRAMEWORK "arduino-" STR(ARDUINO) "-" ARDUINO_VARIANT
+#else
+#define MDASH_FRAMEWORK "idf"
+#endif
+
+#ifndef MDASH_APP_NAME
+#define MDASH_APP_NAME __FILE__
+#endif
+
+#define MDASH_BUILD_TIME __DATE__ "-" __TIME__
+
+#define mDashStartWithWifi(a, b, c, d)                                    \
+  mDashInitWithWifi((a), (b), (c), (d), MDASH_APP_NAME, MDASH_BUILD_TIME, \
+                    MDASH_FRAMEWORK)
+#define mDashStart(a, b) \
+  mDashInit((a), (b), MDASH_APP_NAME, MDASH_BUILD_TIME, MDASH_FRAMEWORK)
 
 enum { MDASH_EV_CONNECTED, MDASH_EV_DISCONNECTED };
 
 // mDash housekeeping
 void mDashInitWithWifi(const char *wifi_name, const char *wifi_pass,
                        const char *device_id, const char *device_pass,
-                       const char *app_name, const char *build_time);
-void mDashInit(const char *, const char *, const char *, const char *);
+                       const char *app_name, const char *build_time,
+                       const char *framework);
+void mDashInit(const char *device_id, const char *device_pass,
+               const char *app_name, const char *build_time,
+               const char *framework);
 void mDashOn(void (*fn)(int, void *), void *);
 void mDashSetLogLevel(int logLevel);
 const char *mDashGetDeviceID(void);
