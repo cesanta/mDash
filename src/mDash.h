@@ -10,10 +10,10 @@ extern "C" {
 #if ARDUINO
 #define __TOSTR(x) #x
 #define STR(x) __TOSTR(x)
-#ifndef ARDUINO_VARIANT
-#define ARDUINO_VARIANT "?"
+#ifndef ARDUINO_BOARD
+#define ARDUINO_BOARD "?"
 #endif
-#define MDASH_FRAMEWORK "arduino-" STR(ARDUINO) "-" ARDUINO_VARIANT
+#define MDASH_FRAMEWORK "a-" STR(ARDUINO) "-" ARDUINO_BOARD
 #else
 #define MDASH_FRAMEWORK "idf"
 #endif

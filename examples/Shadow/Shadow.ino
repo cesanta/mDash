@@ -27,10 +27,8 @@ static const char *s_topic = DEVICE_ID "/shadow/update";  // Shadow update topic
 // set our current state to this value, and report the sate to clear the delta.
 static void onShadowDelta(const char *topic, const char *message) {
   static int led = 0;
-  double v = 0;
   printf("DELTA: %s\n", message);
-  if (mDashGetBool(message, "$.state.led", &v)) {
-    led = v;                     // Set LED variable to the desired value
+  if (mDashGetBool(message, "$.state.led", &led)) {
     pinMode(LED_PIN, OUTPUT);    // And synchronise
     digitalWrite(LED_PIN, led);  // the hardware
   }
