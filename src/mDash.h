@@ -43,6 +43,7 @@ void mDashInit(const char *device_id, const char *device_pass,
 void mDashOn(void (*fn)(int, void *), void *);
 void mDashSetLogLevel(int logLevel);
 const char *mDashGetDeviceID(void);
+unsigned long mDashGetFreeRam(void);
 
 // MQTT API
 int mDashPublish(const char *topic, const char *message_fmt, ...);

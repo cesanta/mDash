@@ -11,5 +11,7 @@ void setup() {
 }
 
 void loop() {
-  delay(1000);
+  delay(120 * 1000);  // Sleep 2 minutes
+  mDashPublish("db/data/" DEVICE_ID, "{\"free_ram\":%d}",  // Report free memory
+               mDashGetFreeRam());  // could also be sensor values, etc
 }
