@@ -41,7 +41,6 @@ static void onShadowDelta(const char *topic, const char *message) {
 
 void setup() {
   Serial.begin(115200);
-  mDashSetServer("192.168.1.86", 1883);
   mDashStartWithWifi(WIFI_NAME, WIFI_PASS, DEVICE_ID, DEVICE_TOKEN);
   mDashSubscribe(DEVICE_ID "/shadow/delta", onShadowDelta);  // handle delta
   mDashOn((void (*)(int, void *)) reportShadowState, 0);  // report on connect
