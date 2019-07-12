@@ -44,6 +44,10 @@ void mDashOn(void (*fn)(int, void *), void *);
 void mDashSetLogLevel(int logLevel);
 const char *mDashGetDeviceID(void);
 unsigned long mDashGetFreeRam(void);
+void mDashSetServer(const char *, int);
+
+struct mjson_out;
+int mjson_printf(struct mjson_out *, const char *, ...);
 
 // MQTT API
 int mDashPublish(const char *topic, const char *message_fmt, ...);
