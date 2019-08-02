@@ -35,7 +35,8 @@ extern "C" {
   mDashInitWithWifi(NULL, NULL, NULL, NULL, MDASH_APP_NAME, MDASH_BUILD_TIME, \
                     MDASH_FRAMEWORK)
 
-enum { MDASH_EV_CONNECTED, MDASH_EV_DISCONNECTED };
+// mDash states
+enum { MDASH_NO_IP, MDASH_AP_IP, MDASH_STA_IP, MDASH_CONNECTED };
 
 // mDash housekeeping
 void mDashInitWithWifi(const char *wifi_name, const char *wifi_pass,
@@ -46,11 +47,11 @@ void mDashInit(const char *device_id, const char *device_pass,
                const char *app_name, const char *build_time,
                const char *framework);
 
-void mDashOn(void (*fn)(int, void *), void *);
+int mDashGetState(void);
+void mDashOn(void (*fn)(void *), void *);
 void mDashSetLogLevel(int logLevel);
 const char *mDashGetDeviceID(void);
 unsigned long mDashGetFreeRam(void);
-void mDashSetServer(const char *, int);
 struct mjson_out;
 int mjson_printf(struct mjson_out *, const char *, ...);
 
@@ -60,6 +61,8 @@ void mDashCLI(unsigned char input_byte);
 // MQTT API
 int mDashPublish(const char *topic, const char *message_fmt, ...);
 void mDashSubscribe(const char *topic, void (*fn)(const char *, const char *));
+int mDashShadowUpdate(const char *message_fmt, ...);
+void mDashShadowDeltaSubscribe(void (*fn)(const char *, const char *));
 
 // RPC API
 void mDashExport(const char *name, void (*cb)(void *, void *), void *cbdata);
