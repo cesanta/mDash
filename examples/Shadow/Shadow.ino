@@ -5,6 +5,7 @@
 // See device shadow tutorial at:
 // https://forum.mdash.net/t/remote-control-via-device-shadow-overview/18
 
+#define MDASH_APP_NAME "mDashApp"
 #include <mDash.h>
 
 static int ledStatus = 0;  // Initially, LED is off. Mapped to shadow key `led`.
