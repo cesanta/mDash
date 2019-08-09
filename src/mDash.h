@@ -76,6 +76,11 @@ int mDashGetStr(const char *json, const char *json_path, char *dst, int len);
 int mDashGetBase64(const char *json, const char *json_path, char *dst, int len);
 int mDashGetBool(const char *json, const char *json_path, int *);
 
+// Configuration API
+int mDashConfigGet(const char *name, char *buf, int bufsize);
+int mDashConfigSet(const char *name, const char *value);
+void mDashCLI(unsigned char input_byte);
+
 #ifdef __cplusplus
 }
 #endif
