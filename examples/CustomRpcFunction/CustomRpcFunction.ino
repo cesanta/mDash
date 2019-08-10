@@ -1,5 +1,9 @@
+#define MDASH_APP_NAME "myApp"
 #include <mDash.h>
 
+// This sketch hardcodes WIFI and cloud credentials
+// To avoid hardcoding and save credentials into the config, see
+// https://mdash.net/docs/quickstart/arduino.md
 #define WIFI_NAME "YOUR_WIFI_NETWORK"
 #define WIFI_PASS "YOUR_WIFI_PASSWORD"
 #define DEVICE_ID "DEVICE_ID"

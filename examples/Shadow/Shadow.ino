@@ -1,9 +1,5 @@
-// This sketch demonstrates how to use mdash.net device shadow:
-// 	- set LED on or off, based on the `state.desired.led` shadow key
-//  - report free RAM value to the database periodically
-//
-// See device shadow tutorial at:
-// https://forum.mdash.net/t/remote-control-via-device-shadow-overview/18
+// See step-by-step guide at:
+// https://mdash.net/docs/quickstart/arduino.md
 
 #define MDASH_APP_NAME "mDashApp"
 #include <mDash.h>
