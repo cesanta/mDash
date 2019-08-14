@@ -46,6 +46,6 @@ void loop() {
   delay(5 * 1000);
   // Save current free RAM to the database - for graphing
   String topic = String("db/") + mDashGetDeviceID() + "/ram";
-  mDashPublish(topic.c_str(), "%lu", mDashGetFreeRam());
+  mDashPublish(topic.c_str(), "{%Q:%lu}", "free_ram", mDashGetFreeRam());
   reportShadowState();  // Report current shadow state
 }

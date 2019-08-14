@@ -50,10 +50,16 @@ void mDashInit(const char *device_id, const char *device_pass,
 int mDashGetState(void);
 void mDashOn(void (*fn)(void *), void *);
 void mDashSetLogLevel(int logLevel);
+void mDashSetServer(const char *, int);
 const char *mDashGetDeviceID(void);
 unsigned long mDashGetFreeRam(void);
 struct mjson_out;
 int mjson_printf(struct mjson_out *, const char *, ...);
+
+// Logging API
+enum { LL_NONE, LL_CRIT, LL_INFO, LL_DEBUG };
+#define MLOG(ll, fmt, ...) mlog(ll, __func__, (fmt), __VA_ARGS__)
+void mlog(int ll, const char *fn, const char *fmt, ...);
 
 // Provisioning API
 void mDashCLI(unsigned char input_byte);
