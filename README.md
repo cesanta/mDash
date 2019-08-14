@@ -1,6 +1,6 @@
-# Arduino library for mdash.net IoT backend
+# Arduino / ESP-IDF library for mdash.net IoT service
 
-This is an Arduino library for [mDash](https://mdash.net) IoT backend,
-which provides OTA and remote device management for the ESP32 devices.
+This is an Arduino library for [mDash](https://mdash.net), an IoT service
+for ESP32.
 
-See [mDash reference](https://forum.mdash.net/t/mdash-documentation-reference/34) for the quick start guide.
+See [Documentation](https://mdash.net/docs/) for the quick start guide.
