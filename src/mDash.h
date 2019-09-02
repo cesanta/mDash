@@ -36,7 +36,7 @@ extern "C" {
                     MDASH_FRAMEWORK)
 
 // mDash states
-enum { MDASH_NO_IP, MDASH_AP_IP, MDASH_STA_IP, MDASH_CONNECTED };
+enum mDashConnState { MDASH_NO_IP, MDASH_AP_IP, MDASH_STA_IP, MDASH_CONNECTED };
 
 // mDash housekeeping
 void mDashInitWithWifi(const char *wifi_name, const char *wifi_pass,
@@ -48,13 +48,22 @@ void mDashInit(const char *device_id, const char *device_pass,
                const char *framework);
 
 int mDashGetState(void);
-void mDashOn(void (*fn)(void *), void *);
 void mDashSetLogLevel(int logLevel);
 void mDashSetServer(const char *, int);
 const char *mDashGetDeviceID(void);
+const char *mDashGetSdkVersion(void);
 unsigned long mDashGetFreeRam(void);
 struct mjson_out;
 int mjson_printf(struct mjson_out *, const char *, ...);
+
+// Events
+enum {
+  MDASH_EVENT_CONN_STATE = 0,  // event_data: enum mDashConnState
+  MDASH_EVENT_USER = 100,      // Starting number for user-based events
+};
+typedef void (*evh_t)(void *event_data, void *userdata);
+void mDashRegisterEventHandler(int event, evh_t fn, void *userdata);
+int mDashTriggerEvent(int event, void *event_data);
 
 // Logging API
 enum { LL_NONE, LL_CRIT, LL_INFO, LL_DEBUG };
@@ -81,6 +90,8 @@ int mDashGetNum(const char *json, const char *json_path, double *value);
 int mDashGetStr(const char *json, const char *json_path, char *dst, int len);
 int mDashGetBase64(const char *json, const char *json_path, char *dst, int len);
 int mDashGetBool(const char *json, const char *json_path, int *);
+int mDashGetTok(const char *json, const char *json_path, const char **, int *);
+char *mDashToJson(const char *json_fmt, ...);
 
 // Configuration API
 int mDashConfigGet(const char *name, char *buf, int bufsize);

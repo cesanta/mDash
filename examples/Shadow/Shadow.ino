@@ -8,9 +8,8 @@ static int ledStatus = 0;  // Initially, LED is off. Mapped to shadow key `led`.
 static int ledPin = 5;     // Default LED pin. Mapped to shadow key `pin`.
 
 static void reportShadowState() {
-  mDashShadowUpdate(
-      "{\"state\":{\"reported\":{\"led\":%B,\"pin\":%d,\"ram\":%lu}}}",
-      ledStatus, ledPin, mDashGetFreeRam());
+  mDashShadowUpdate("{\"state\":{\"reported\":{\"led\":%B,\"pin\":%d}}}",
+                    ledStatus, ledPin);
 }
 
 // This function is called when a shadow delta arrives from mdash.net
@@ -31,11 +30,17 @@ static void onShadowDelta(const char *topic, const char *message) {
   reportShadowState();              // And report, clearing the delta
 }
 
+// When we're reconnected, report our current state to shadow
+static void onConnStateChange(void *event_data, void *user_data) {
+  long connection_state = (long) event_data;
+  if (connection_state == MDASH_CONNECTED) reportShadowState();
+}
+
 void setup() {
   Serial.begin(115200);
   mDashBegin();
-  mDashShadowDeltaSubscribe(onShadowDelta);          // handle delta
-  mDashOn((void (*)(void *)) reportShadowState, 0);  // report on connect
+  mDashShadowDeltaSubscribe(onShadowDelta);
+  mDashRegisterEventHandler(MDASH_EVENT_CONN_STATE, onConnStateChange, NULL);
 
   // Until connected to the cloud, enable provisioning over serial
   while (mDashGetState() != MDASH_CONNECTED)
@@ -47,5 +52,4 @@ void loop() {
   // Save current free RAM to the database - for graphing
   String topic = String("db/") + mDashGetDeviceID() + "/ram";
   mDashPublish(topic.c_str(), "{%Q:%lu}", "free_ram", mDashGetFreeRam());
-  reportShadowState();  // Report current shadow state
 }
