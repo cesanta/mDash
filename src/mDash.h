@@ -73,11 +73,10 @@ void mlog(int ll, const char *fn, const char *fmt, ...);
 // Provisioning API
 void mDashCLI(unsigned char input_byte);
 
-// MQTT API
-int mDashPublish(const char *topic, const char *message_fmt, ...);
-void mDashSubscribe(const char *topic, void (*fn)(const char *, const char *));
-int mDashShadowUpdate(const char *message_fmt, ...);
-void mDashShadowDeltaSubscribe(void (*fn)(const char *, const char *));
+// Notification API
+int mDashNotify(const char *name, const char *fmt, ...);
+#define mDashShadowUpdate(fmt, ...) \
+  mDashNotify("Dash.Shadow.Update", (fmt), __VA_ARGS__)
 
 // RPC API
 void mDashExport(const char *name, void (*cb)(void *, void *), void *cbdata);
