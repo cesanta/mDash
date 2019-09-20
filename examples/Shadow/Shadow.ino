@@ -20,11 +20,11 @@ static void reportShadowState() {
 // `state.reported.led=false`, thus a difference (delta) exists.
 // We need to parse the delta JSON string, fetch the value for `led`, and make
 // `state.reported` equal to the `state.desired`. That clears the delta.
-static void onShadowDelta(const char *topic, const char *message) {
+static void onShadowDelta(void *ctx, void *userdata) {
+  const char *params = mDashGetParams(ctx);
   double dv;
-  printf("Topic: %s, message: %s\n", topic, message);
-  if (mDashGetNum(message, "$.state.pin", &dv)) ledPin = dv;
-  mDashGetBool(message, "$.state.led", &ledStatus);
+  if (mDashGetNum(params, "$.state.pin", &dv)) ledPin = dv;
+  mDashGetBool(params, "$.state.led", &ledStatus);
   pinMode(ledPin, OUTPUT);          // Synchronise
   digitalWrite(ledPin, ledStatus);  // the hardware
   reportShadowState();              // And report, clearing the delta
@@ -39,7 +39,7 @@ static void onConnStateChange(void *event_data, void *user_data) {
 void setup() {
   Serial.begin(115200);
   mDashBegin();
-  mDashShadowDeltaSubscribe(onShadowDelta);
+  mDashExport("Shadow.Delta", onShadowDelta, NULL);
   mDashRegisterEventHandler(MDASH_EVENT_CONN_STATE, onConnStateChange, NULL);
 
   // Until connected to the cloud, enable provisioning over serial
@@ -49,7 +49,6 @@ void setup() {
 
 void loop() {
   delay(5 * 1000);
-  // Save current free RAM to the database - for graphing
-  String topic = String("db/") + mDashGetDeviceID() + "/ram";
-  mDashPublish(topic.c_str(), "{%Q:%lu}", "free_ram", mDashGetFreeRam());
+  mDashShadowUpdate("{\"state\":{\"reported\":{\"ram_free\":%lu}}}",
+                    mDashGetFreeRam());  // Report free RAM periodically
 }

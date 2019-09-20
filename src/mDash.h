@@ -77,6 +77,7 @@ void mDashCLI(unsigned char input_byte);
 int mDashNotify(const char *name, const char *fmt, ...);
 #define mDashShadowUpdate(fmt, ...) \
   mDashNotify("Dash.Shadow.Update", (fmt), __VA_ARGS__)
+#define mDashSave(fmt, ...) mDashNotify("Store", (fmt), __VA_ARGS__)
 
 // RPC API
 void mDashExport(const char *name, void (*cb)(void *, void *), void *cbdata);

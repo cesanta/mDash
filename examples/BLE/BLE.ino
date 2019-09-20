@@ -1,8 +1,9 @@
 // This sketch catches BLE advertisements and sends them to MQTT
-// 1. Flash this sketch to the ESP32 board
-// 2. Setup WiFi and cloud credentials, see
+// 1. In the Arduino IDE, choose Tools / Board / ESP32 Dev module
+// 2. In the Arduino IDE, choose Tools / Partition Scheme / Minimal SPIFFS
+// 3. Flash this sketch to the ESP32 board
+// 4. Setup WiFi and cloud credentials, see
 // 		https://mdash.net/docs/quickstart/arduino.md#8-configure-device
-// 3. In the mDash UI, go to "MQTT" tab and see received advertisements
 
 #define MDASH_APP_NAME "ble-gateway"
 #include <mDash.h>
@@ -22,7 +23,7 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       int plen = d.getPayloadLength();
 
       snprintf(addr, sizeof(addr), "%s", d.getAddress().toString().c_str());
-      mDashPublish("ble", "{\"mac\":%Q,\"adv\":%H}", addr, plen, p);
+      mDashSave("{\"mac\":%Q,\"adv\":%H}", addr, plen, p);
       Serial.printf("Advertised Device: %s\n", addr);
     }
 };
