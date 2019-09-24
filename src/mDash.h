@@ -50,7 +50,6 @@ void mDashInit(const char *device_id, const char *device_pass,
 int mDashGetState(void);
 void mDashSetLogLevel(int logLevel);
 void mDashSetServer(const char *, int);
-const char *mDashGetDeviceID(void);
 const char *mDashGetSdkVersion(void);
 unsigned long mDashGetFreeRam(void);
 struct mjson_out;
