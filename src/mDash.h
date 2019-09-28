@@ -96,6 +96,9 @@ int mDashConfigGet(const char *name, char *buf, int bufsize);
 int mDashConfigSet(const char *name, const char *value);
 void mDashCLI(unsigned char input_byte);
 
+// JS API
+int mDashInitJS(int ram_size);
+
 #ifdef __cplusplus
 }
 #endif
