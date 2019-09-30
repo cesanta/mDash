@@ -24,22 +24,19 @@ extern "C" {
 
 #define MDASH_BUILD_TIME __DATE__ "-" __TIME__
 
-#define mDashStartWithWifi(a, b, c, d)                                    \
-  mDashInitWithWifi((a), (b), (c), (d), MDASH_APP_NAME, MDASH_BUILD_TIME, \
-                    MDASH_FRAMEWORK)
+#define mDashBeginWithWifi(fn, a, b, d)                        \
+  mDashInitWithWifi((fn), (a), (b), NULL, (d), MDASH_APP_NAME, \
+                    MDASH_BUILD_TIME, MDASH_FRAMEWORK)
 
-#define mDashStart(a, b) \
-  mDashInit((a), (b), MDASH_APP_NAME, MDASH_BUILD_TIME, MDASH_FRAMEWORK)
-
-#define mDashBegin()                                                          \
-  mDashInitWithWifi(NULL, NULL, NULL, NULL, MDASH_APP_NAME, MDASH_BUILD_TIME, \
-                    MDASH_FRAMEWORK)
+#define mDashBegin(b) \
+  mDashInit(NULL, (b), MDASH_APP_NAME, MDASH_BUILD_TIME, MDASH_FRAMEWORK)
 
 // mDash states
 enum mDashConnState { MDASH_NO_IP, MDASH_AP_IP, MDASH_STA_IP, MDASH_CONNECTED };
 
 // mDash housekeeping
-void mDashInitWithWifi(const char *wifi_name, const char *wifi_pass,
+void mDashInitWithWifi(void (*fn)(const char *wifi_name, const char *wifi_pass),
+                       const char *wifi_name, const char *wifi_pass,
                        const char *device_id, const char *device_pass,
                        const char *app_name, const char *build_time,
                        const char *framework);

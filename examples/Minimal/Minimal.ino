@@ -1,17 +1,28 @@
+// Minimal Arduino sketch for mdash.net
+//
+//  - Install mDash library:
+//    - Select "Sketch" &rarr; "Include Library" &rarr; "Manage Libraries"
+//    - In the search field, type "mDash" and press Enter
+//    - Click on "Install" to install the library
+//  - Select "Tools" → "Board" → "ESP32 Dev Module"
+//  - Select "Tools" → "Partitioning Scheme" → "Minimal SPIFFS"
+//  - Select "Tools" → "Port" → your serial port
+//  - Click on "Upload" button to build and flash the firmware
+
 #define MDASH_APP_NAME "myApp"
 #include <mDash.h>
 
-// Flash this firmware to the device, then configure WiFi and cloud credentials
-// by following steps 6,7,8,9 of the quick start quide:
-// https://mdash.net/docs/quickstart/arduino.md#6-register-new-device
+#include <WiFi.h>
+
+#define WIFI_NETWORK "MyWifiNetworkName"
+#define WIFI_PASSWORD "MyWifiPassword"
+#define DEVICE_PASSWORD "mDashDeviceToken"
 
 void setup() {
   Serial.begin(115200);
-  mDashBegin();
-
-  // Until connected to the cloud, enable provisioning over serial
-  while (mDashGetState() != MDASH_CONNECTED)
-    if (Serial.available() > 0) mDashCLI(Serial.read());
+  WiFi.begin(WIFI_NETWORK, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+  mDashStart(DEVICE_PASSWORD);
 }
 
 void loop() {

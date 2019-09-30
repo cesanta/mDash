@@ -2,8 +2,6 @@
 // 1. In the Arduino IDE, choose Tools / Board / ESP32 Dev module
 // 2. In the Arduino IDE, choose Tools / Partition Scheme / Minimal SPIFFS
 // 3. Flash this sketch to the ESP32 board
-// 4. Setup WiFi and cloud credentials, see
-// 		https://mdash.net/docs/quickstart/arduino.md#8-configure-device
 
 #define MDASH_APP_NAME "ble-gateway"
 #include <mDash.h>
@@ -12,6 +10,12 @@
 #include <BLEUtils.h>
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
+
+#include <WiFi.h>
+
+#define WIFI_NETWORK "MyWifiNetworkName"
+#define WIFI_PASSWORD "MyWifiPassword"
+#define DEVICE_PASSWORD "mDashDeviceToken"
 
 int scanTime = 3;  // In seconds
 BLEScan* pBLEScan;
@@ -23,16 +27,19 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       int plen = d.getPayloadLength();
 
       snprintf(addr, sizeof(addr), "%s", d.getAddress().toString().c_str());
-      mDashSave("{\"mac\":%Q,\"adv\":%H}", addr, plen, p);
+      mDashNotify("DB.Save", "{\"mac\":%Q,\"adv\":%H}", addr, plen, p);
       Serial.printf("Advertised Device: %s\n", addr);
     }
 };
 
 void setup() {
   Serial.begin(115200);
-  
+
+  WiFi.begin(WIFI_NETWORK, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+
   mDashSetServer("mdash.net", 1883);
-  mDashBegin();
+  mDashBegin(DEVICE_PASSWORD);
 
   // Until connected to the cloud, enable provisioning over serial
   while (mDashGetState() != MDASH_CONNECTED)
