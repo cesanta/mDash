@@ -9,7 +9,7 @@
 //  - Select "Tools" → "Port" → your serial port
 //  - Click on "Upload" button to build and flash the firmware
 
-#define MDASH_APP_NAME "myApp"
+#define MDASH_APP_NAME "MinimalApp"
 #include <mDash.h>
 
 #include <WiFi.h>

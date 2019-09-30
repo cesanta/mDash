@@ -91,6 +91,7 @@ char *mDashToJson(const char *json_fmt, ...);
 // Configuration API
 int mDashConfigGet(const char *name, char *buf, int bufsize);
 int mDashConfigSet(const char *name, const char *value);
+int mDashConfigReset(void);
 void mDashCLI(unsigned char input_byte);
 
 // JS API
