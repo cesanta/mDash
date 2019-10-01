@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <stdarg.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,15 +47,14 @@ void mDashSetLogLevel(int logLevel);
 void mDashSetServer(const char *, int);
 const char *mDashGetSdkVersion(void);
 unsigned long mDashGetFreeRam(void);
-struct mjson_out;
-int mjson_printf(struct mjson_out *, const char *, ...);
 
 // Events
 enum {
   // Events defined by the mDash library
-  MDASH_EVENT_BECAME_AP = 0,        // event_data: NULL
-  MDASH_EVENT_GOT_IP = 1,           // event_data: struct in_addr *
-  MDASH_EVENT_CLOUD_CONNECTED = 2,  // event_data: NULL
+  MDASH_EVENT_NETWORK_LOST = 0,       // event_data: NULL
+  MDASH_EVENT_NETWORK_AP = 1,         // event_data: NULL
+  MDASH_EVENT_NETWORK_CONNECTED = 2,  // event_data: struct in_addr *
+  MDASH_EVENT_CLOUD_CONNECTED = 3,    // event_data: NULL
 
   // Events defined by user
   MDASH_EVENT_USER = 100,  // Starting number for user-based events
@@ -97,6 +98,13 @@ void mDashCLI(unsigned char input_byte);
 
 // JS API
 int mDashInitJS(int ram_size);
+
+// mjson API
+typedef int (*mjson_print_fn_t)(const char *buf, int len, void *userdata);
+typedef int (*mjson_vprint_fn_t)(mjson_print_fn_t, void *, va_list *);
+int mjson_printf(mjson_print_fn_t, void *, const char *, ...);
+int mjson_print_file(const char *ptr, int len, void *userdata);
+int mjson_print_dynamic_buf(const char *ptr, int len, void *userdata);
 
 #ifdef __cplusplus
 }
