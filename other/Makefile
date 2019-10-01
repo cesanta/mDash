@@ -1,4 +1,4 @@
-LDFLAGS	?= -L/usr/local/Cellar/mbedtls/2.13.0/lib -lmbedtls -lmbedx509 -lmbedcrypto -lmbedtls -lmbedx509 -lmbedcrypto
+LDFLAGS	?= -L/usr/local/opt/mbedtls/lib -lmbedtls -lmbedx509 -lmbedcrypto -lmbedtls -lmbedx509 -lmbedcrypto
 CFLAGS	?= -W -Wall -I../src
 PROG		?= mDashDevice
 EXTRA		?=

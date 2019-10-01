@@ -28,12 +28,10 @@ static void onDelta(void *ctx, void *cbdata) {
 }
 
 int main(int argc, char *argv[]) {
-  const char *id = NULL, *pass = NULL, *report_interval = "5";
+  const char *wifi = "", *pass = NULL, *report_interval = "5";
 
   for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "--id") == 0) {
-      id = argv[++i];
-    } else if (strcmp(argv[i], "--pass") == 0) {
+    if (strcmp(argv[i], "--pass") == 0) {
       pass = argv[++i];
     } else if (strcmp(argv[i], "--server") == 0) {
       mDashConfigSet("server.name", argv[++i]);
@@ -43,8 +41,8 @@ int main(int argc, char *argv[]) {
       mDashSetLogLevel(atoi(argv[++i]));
     } else if (strcmp(argv[i], "--report-interval") == 0) {
       report_interval = argv[++i];
-    } else if (strcmp(argv[i], "--http-server") == 0) {
-      // initial_status = MDASH_AP_IP;
+    } else if (strcmp(argv[i], "--ap") == 0) {
+      wifi = NULL;  // if WiFi is NULL, mDash lib starts HTTP server
     } else {
       MLOG(LL_CRIT, "Invalid option: [%s]\n", argv[i]);
       MLOG(LL_CRIT, "Usage: %s --pass DEVICE_PASSWORD", argv[0]);
@@ -57,7 +55,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  mDashStart(id, pass);
+  mDashBeginWithWifi(NULL, wifi, NULL, pass);
   mDashExport("Shadow.Delta", onDelta, NULL);
 
   mDashInitJS(4096);

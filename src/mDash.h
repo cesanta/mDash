@@ -24,22 +24,16 @@ extern "C" {
 
 #define MDASH_BUILD_TIME __DATE__ "-" __TIME__
 
-#define mDashStartWithWifi(a, b, c, d)                                    \
-  mDashInitWithWifi((a), (b), (c), (d), MDASH_APP_NAME, MDASH_BUILD_TIME, \
-                    MDASH_FRAMEWORK)
+#define mDashBeginWithWifi(fn, a, b, d)                        \
+  mDashInitWithWifi((fn), (a), (b), NULL, (d), MDASH_APP_NAME, \
+                    MDASH_BUILD_TIME, MDASH_FRAMEWORK)
 
-#define mDashStart(a, b) \
-  mDashInit((a), (b), MDASH_APP_NAME, MDASH_BUILD_TIME, MDASH_FRAMEWORK)
-
-#define mDashBegin()                                                          \
-  mDashInitWithWifi(NULL, NULL, NULL, NULL, MDASH_APP_NAME, MDASH_BUILD_TIME, \
-                    MDASH_FRAMEWORK)
-
-// mDash states
-enum mDashConnState { MDASH_NO_IP, MDASH_AP_IP, MDASH_STA_IP, MDASH_CONNECTED };
+#define mDashBegin(b) \
+  mDashInit(NULL, (b), MDASH_APP_NAME, MDASH_BUILD_TIME, MDASH_FRAMEWORK)
 
 // mDash housekeeping
-void mDashInitWithWifi(const char *wifi_name, const char *wifi_pass,
+void mDashInitWithWifi(void (*fn)(const char *wifi_name, const char *wifi_pass),
+                       const char *wifi_name, const char *wifi_pass,
                        const char *device_id, const char *device_pass,
                        const char *app_name, const char *build_time,
                        const char *framework);
@@ -47,7 +41,6 @@ void mDashInit(const char *device_id, const char *device_pass,
                const char *app_name, const char *build_time,
                const char *framework);
 
-int mDashGetState(void);
 void mDashSetLogLevel(int logLevel);
 void mDashSetServer(const char *, int);
 const char *mDashGetSdkVersion(void);
@@ -57,8 +50,13 @@ int mjson_printf(struct mjson_out *, const char *, ...);
 
 // Events
 enum {
-  MDASH_EVENT_CONN_STATE = 0,  // event_data: enum mDashConnState
-  MDASH_EVENT_USER = 100,      // Starting number for user-based events
+  // Events defined by the mDash library
+  MDASH_EVENT_BECAME_AP = 0,        // event_data: NULL
+  MDASH_EVENT_GOT_IP = 1,           // event_data: struct in_addr *
+  MDASH_EVENT_CLOUD_CONNECTED = 2,  // event_data: NULL
+
+  // Events defined by user
+  MDASH_EVENT_USER = 100,  // Starting number for user-based events
 };
 typedef void (*evh_t)(void *event_data, void *userdata);
 void mDashRegisterEventHandler(int event, evh_t fn, void *userdata);
@@ -94,6 +92,7 @@ char *mDashToJson(const char *json_fmt, ...);
 // Configuration API
 int mDashConfigGet(const char *name, char *buf, int bufsize);
 int mDashConfigSet(const char *name, const char *value);
+int mDashConfigReset(void);
 void mDashCLI(unsigned char input_byte);
 
 // JS API
