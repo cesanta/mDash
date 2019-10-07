@@ -18,13 +18,11 @@ static void sighandler(int sig) {
 
 // This shadow delta callback sets reported equal to desired, thus
 // clearing the delta - whatever it is, without performing any actual action.
-static void onDelta(void *ctx, void *cbdata) {
-  const char *s;
-  int len;
-  if (mDashGetTok(mDashGetParams(ctx), "$.state", &s, &len)) {
-    mDashShadowUpdate("{%Q:{%Q:%.*s}}", "state", "reported", len, s);
-  }
-  (void) cbdata;
+static void onDelta(struct jsonrpc_request *r) {
+  const char *s = NULL;
+  int len = 0;
+  mjson_find(r->params, r->params_len, "$.state", &s, &len);
+  if (s) mDashShadowUpdate("{%Q:{%Q:%.*s}}", "state", "reported", len, s);
 }
 
 int main(int argc, char *argv[]) {
@@ -56,7 +54,7 @@ int main(int argc, char *argv[]) {
   }
 
   mDashBeginWithWifi(NULL, wifi, NULL, pass);
-  mDashExport("Shadow.Delta", onDelta, NULL);
+  jsonrpc_export("Shadow.Delta", onDelta, NULL);
 
   mDashInitJS(4096);
 
