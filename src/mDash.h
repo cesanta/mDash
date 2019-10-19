@@ -48,7 +48,6 @@ void mDashSetServer(const char *, int);
 int mDashGetState(void);  // current connection state, MDASH_EVENT_*
 const char *mDashGetSdkVersion(void);
 unsigned long mDashGetFreeRam(void);
-char *mDashToJson(const char *json_fmt, ...);
 
 // Events
 enum {

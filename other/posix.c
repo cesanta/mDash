@@ -56,8 +56,6 @@ int main(int argc, char *argv[]) {
   mDashBeginWithWifi(NULL, wifi, NULL, pass);
   jsonrpc_export("Shadow.Delta", onDelta, NULL);
 
-  mDashInitJS(4096);
-
   srand(time(0));
   sleep(1);
   signal(SIGINT, sighandler);
