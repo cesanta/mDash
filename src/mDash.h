@@ -69,6 +69,9 @@ enum { LL_NONE, LL_CRIT, LL_INFO, LL_DEBUG };
 #define MLOG(ll, fmt, ...) mlog(ll, __func__, (fmt), __VA_ARGS__)
 void mlog(int ll, const char *fn, const char *fmt, ...);
 
+// Data storage
+int mDashStore(const char *topic, const char *json_fmt, ...);
+
 // Provisioning API
 void mDashCLI(unsigned char input_byte);
 
@@ -82,9 +85,6 @@ int mDashConfigGet(const char *name, char *buf, int bufsize);
 int mDashConfigSet(const char *name, const char *value);
 int mDashConfigReset(void);
 void mDashCLI(unsigned char input_byte);
-
-// JS API
-int mDashInitJS(int ram_size);
 
 // mjson API - see documentation at https://github.com/cesanta/mjson
 #ifndef MJSON_H

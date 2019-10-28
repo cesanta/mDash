@@ -63,7 +63,8 @@ int main(int argc, char *argv[]) {
   signal(SIGPIPE, SIG_IGN);
 
   while (s_stop == 0) {
-    mDashNotify("DB.Save", "{%Q:%u}", "ram", mDashGetFreeRam());
+    mDashStore("metrics", "{%Q:%u,%Q:%lu}", "ram", mDashGetFreeRam(), "utc",
+               (unsigned long) time(NULL));
     sleep(atoi(report_interval));
   }
 
