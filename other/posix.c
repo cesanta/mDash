@@ -25,7 +25,6 @@ static void onDelta(struct jsonrpc_request *r) {
   if (s) mDashShadowUpdate("{%Q:{%Q:%.*s}}", "state", "reported", len, s);
 }
 
-extern void mDashInitJS(int);
 int main(int argc, char *argv[]) {
   const char *wifi = "", *pass = NULL, *report_interval = "5";
 
@@ -56,8 +55,6 @@ int main(int argc, char *argv[]) {
 
   mDashBeginWithWifi(NULL, wifi, NULL, pass);
   jsonrpc_export("Shadow.Delta", onDelta, NULL);
-
-  mDashInitJS(4096);
 
   srand(time(0));
   sleep(1);
