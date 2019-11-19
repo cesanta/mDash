@@ -26,15 +26,13 @@ static void onDelta(struct jsonrpc_request *r) {
 }
 
 int main(int argc, char *argv[]) {
-  const char *wifi = "", *pass = NULL, *report_interval = "5";
+  const char *wifi = "", *pass = NULL, *url = NULL, *report_interval = "5";
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--pass") == 0) {
       pass = argv[++i];
-    } else if (strcmp(argv[i], "--server") == 0) {
-      mDashConfigSet("server.name", argv[++i]);
-    } else if (strcmp(argv[i], "--port") == 0) {
-      mDashConfigSet("server.port", argv[++i]);
+    } else if (strcmp(argv[i], "--url") == 0) {
+      url = argv[++i];
     } else if (strcmp(argv[i], "--log-level") == 0) {
       mDashSetLogLevel(atoi(argv[++i]));
     } else if (strcmp(argv[i], "--report-interval") == 0) {
@@ -55,6 +53,7 @@ int main(int argc, char *argv[]) {
 
   mDashBeginWithWifi(NULL, wifi, NULL, pass);
   jsonrpc_export("Shadow.Delta", onDelta, NULL);
+  if (url != NULL) mDashSetURL(url);
 
   srand(time(0));
   sleep(1);

@@ -44,7 +44,7 @@ void mDashInit(const char *device_id, const char *device_pass,
                const char *framework);
 
 void mDashSetLogLevel(int logLevel);
-void mDashSetServer(const char *, int);
+void mDashSetURL(const char *);
 int mDashGetState(void);  // current connection state, MDASH_EVENT_*
 const char *mDashGetSdkVersion(void);
 unsigned long mDashGetFreeRam(void);
