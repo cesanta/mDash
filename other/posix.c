@@ -25,6 +25,14 @@ static void onDelta(struct jsonrpc_request *r) {
   if (s) mDashShadowUpdate("{%Q:{%Q:%.*s}}", "state", "reported", len, s);
 }
 
+static void onConfigGet(struct jsonrpc_request *r) {
+  jsonrpc_return_success(r, "%s", "{}");
+}
+
+static void onJsEval(struct jsonrpc_request *r) {
+  jsonrpc_return_success(r, "%s", "{}");
+}
+
 int main(int argc, char *argv[]) {
   const char *wifi = "", *pass = NULL, *url = NULL, *report_interval = "5";
 
@@ -53,6 +61,8 @@ int main(int argc, char *argv[]) {
 
   mDashBeginWithWifi(NULL, wifi, NULL, pass);
   jsonrpc_export("Shadow.Delta", onDelta, NULL);
+  jsonrpc_export("Config.Get", onConfigGet, NULL);
+  jsonrpc_export("JS.Eval", onJsEval, NULL);
   if (url != NULL) mDashSetURL(url);
 
   srand(time(0));
@@ -62,8 +72,16 @@ int main(int argc, char *argv[]) {
   signal(SIGPIPE, SIG_IGN);
 
   while (s_stop == 0) {
-    mDashStore("metrics", "{%Q:%u,%Q:%lu}", "ram", mDashGetFreeRam(), "utc",
-               (unsigned long) time(NULL));
+    char now[40];
+    time_t t = time(NULL);
+    strftime(now, sizeof(now), "%Y-%m-%d %H:%M:%S", gmtime(&t));
+
+    // Store the same metric (free ram) using two methods - immediate
+    // notification, and pipelining via flash.
+    mDashNotify("DB.Store", "[%Q,%Q,%Q,%u]", "query1", now, "ram1",
+                mDashGetFreeRam());
+    mDashStore("query1", "[%Q,%Q,%u]", now, "ram2", mDashGetFreeRam());
+
     sleep(atoi(report_interval));
   }
 
