@@ -218,7 +218,7 @@ void jsonrpc_ctx_init(struct jsonrpc_ctx *ctx,
                       void *userdata);
 int jsonrpc_call(mjson_print_fn_t fn, void *fndata, const char *fmt, ...);
 void jsonrpc_return_error(struct jsonrpc_request *r, int code,
-                          const char *message_fmt, ...);
+                          const char *message, const char *data_fmt, ...);
 void jsonrpc_return_success(struct jsonrpc_request *r, const char *result_fmt,
                             ...);
 void jsonrpc_ctx_process(struct jsonrpc_ctx *ctx, char *req, int req_sz,
@@ -244,6 +244,7 @@ extern struct jsonrpc_ctx jsonrpc_default_context;
 
 #endif  // MJSON_ENABLE_RPC
 #endif  // MJSON_H
+
 
 #ifdef __cplusplus
 }

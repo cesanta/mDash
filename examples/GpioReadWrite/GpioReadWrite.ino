@@ -26,7 +26,7 @@ static void handleGpioRead(struct jsonrpc_request *r) {
     pinMode(pin, OUTPUT);
     jsonrpc_return_success(r, "%d", digitalRead(pin));
   } else {
-    jsonrpc_return_error(r, JSONRPC_ERROR_BAD_PARAMS, "%Q", "pin required");
+    jsonrpc_return_error(r, JSONRPC_ERROR_BAD_PARAMS, "pin required", NULL);
   }
 }
 
@@ -38,8 +38,7 @@ static void handleGpioWrite(struct jsonrpc_request *r) {
     digitalWrite(pin, value);
     jsonrpc_return_success(r, "true");
   } else {
-    jsonrpc_return_error(r, JSONRPC_ERROR_BAD_PARAMS, "%Q",
-                         "pin & value required");
+    jsonrpc_return_error(r, JSONRPC_ERROR_BAD_PARAMS, "pin, value required", 0);
   }
 }
 
