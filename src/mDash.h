@@ -56,6 +56,9 @@ enum {
   MDASH_EVENT_NETWORK_AP = 1,         // event_data: NULL
   MDASH_EVENT_NETWORK_CONNECTED = 2,  // event_data: NULL
   MDASH_EVENT_CLOUD_CONNECTED = 3,    // event_data: NULL
+  MDASH_EVENT_OTA_BEGIN = 4,          // event_data: opaque void *
+  MDASH_EVENT_OTA_WRITE = 5,          // event_data: opaque void *
+  MDASH_EVENT_OTA_END = 6,            // event_data: opaque void *
 
   // Events defined by user
   MDASH_EVENT_USER = 100,  // Starting number for user-based events
