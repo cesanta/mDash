@@ -77,16 +77,12 @@ int main(int argc, char *argv[]) {
     time_t t = time(NULL);
     strftime(now, sizeof(now), "%Y-%m-%d %H:%M:%S", gmtime(&t));
 
-#if 0
     // Store the same metric (free ram) using two methods - immediate
     // notification, and pipelining via flash.
     mDashNotify("DB.Store", "[%Q,%Q,%Q,%u]", "query1", now, "ram1",
                 mDashGetFreeRam());
     mDashStore("query1", "[%Q,%Q,%u]", now, "ram2", mDashGetFreeRam());
     mDashShadowUpdate("{%Q:{%Q:{%Q:%Q}}}", "state", "reported", "now", now);
-#endif
-    mDashNotify("State.Set", "{%Q:%d,%Q:{%Q:%Q,%Q:%Q}}", "uptime", t - start,
-                "ota", "built", "2020-05-16 " __TIME__, "version", "1.2.5");
 
     sleep(atoi(report_interval));
   }
