@@ -23,7 +23,7 @@
 static void handleGpioRead(struct jsonrpc_request *r) {
   double pin;
   if (mjson_get_number(r->params, r->params_len, "$.pin", &pin)) {
-    pinMode(pin, OUTPUT);
+    pinMode(pin, INPUT);
     jsonrpc_return_success(r, "%d", digitalRead(pin));
   } else {
     jsonrpc_return_error(r, JSONRPC_ERROR_BAD_PARAMS, "pin required", NULL);
@@ -34,7 +34,7 @@ static void handleGpioWrite(struct jsonrpc_request *r) {
   double pin, value;
   if (mjson_get_number(r->params, r->params_len, "$.pin", &pin) &&
       mjson_get_number(r->params, r->params_len, "$.value", &value)) {
-    pinMode(pin, INPUT);
+    pinMode(pin, OUTPUT);
     digitalWrite(pin, value);
     jsonrpc_return_success(r, "true");
   } else {

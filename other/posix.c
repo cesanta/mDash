@@ -7,12 +7,14 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "mongoose.h"
+
 #include "mDash.h"
 
 static int s_stop;
 
 static void sighandler(int sig) {
-  MLOG(LL_CRIT, "Got signal %d, exiting...", sig);
+  LOG(LL_CRIT, ("Got signal %d, exiting...", sig));
   s_stop = 1;
 }
 
@@ -35,7 +37,6 @@ static void onJsEval(struct jsonrpc_request *r) {
 
 int main(int argc, char *argv[]) {
   const char *wifi = "", *pass = NULL, *url = NULL, *report_interval = "5";
-  time_t start = time(NULL);
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--pass") == 0) {
@@ -43,20 +44,20 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(argv[i], "--url") == 0) {
       url = argv[++i];
     } else if (strcmp(argv[i], "--log-level") == 0) {
-      mDashSetLogLevel(atoi(argv[++i]));
+      mDashSetLogLevel(strdup(argv[++i]));
     } else if (strcmp(argv[i], "--report-interval") == 0) {
       report_interval = argv[++i];
     } else if (strcmp(argv[i], "--ap") == 0) {
       wifi = NULL;  // if WiFi is NULL, mDash lib starts HTTP server
     } else {
-      MLOG(LL_CRIT, "Invalid option: [%s]\n", argv[i]);
-      MLOG(LL_CRIT, "Usage: %s --pass DEVICE_PASSWORD", argv[0]);
+      LOG(LL_CRIT, ("Invalid option: [%s]\n", argv[i]));
+      LOG(LL_CRIT, ("Usage: %s --pass DEVICE_PASSWORD", argv[0]));
       return 1;
     }
   }
 
   if (pass == NULL) {
-    MLOG(LL_CRIT, "%s", "Please specify --pass DEVICE_PASSWORD");
+    LOG(LL_CRIT, ("%s", "Please specify --pass DEVICE_PASSWORD"));
     return 1;
   }
 
