@@ -28,8 +28,8 @@
 #include <WiFi.h>
 
 static void initWiFi(const char *ssid, const char *pass) {
-  if (ssid != NULL) WiFi.begin(ssid, pass); // WiFi is configured, join
-  if (ssid == NULL) WiFi.softAP("CliAP");   // Not configured, start AP
+  if (ssid != NULL) WiFi.begin((char *) ssid, pass);  // WiFi is configured
+  if (ssid == NULL) WiFi.softAP("CliAP", pass);  // Not configured, start AP
 }
 
 void setup() {
