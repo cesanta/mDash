@@ -10,11 +10,12 @@
 #include "mongoose.h"
 
 #include "mDash.h"
+#include "mjson.h"
 
 static int s_stop;
 
 static void sighandler(int sig) {
-  LOG(LL_CRIT, ("Got signal %d, exiting...", sig));
+  MG_ERROR(("Got signal %d, exiting...", sig));
   s_stop = 1;
 }
 
@@ -50,21 +51,21 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(argv[i], "--ap") == 0) {
       wifi = NULL;  // if WiFi is NULL, mDash lib starts HTTP server
     } else {
-      LOG(LL_CRIT, ("Invalid option: [%s]\n", argv[i]));
-      LOG(LL_CRIT, ("Usage: %s --pass DEVICE_PASSWORD", argv[0]));
+      MG_ERROR(("Invalid option: [%s]\n", argv[i]));
+      MG_ERROR(("Usage: %s --pass DEVICE_PASSWORD", argv[0]));
       return 1;
     }
   }
 
   if (pass == NULL) {
-    LOG(LL_CRIT, ("%s", "Please specify --pass DEVICE_PASSWORD"));
+    MG_ERROR(("%s", "Please specify --pass DEVICE_PASSWORD"));
     return 1;
   }
 
   mDashBeginWithWifi(NULL, wifi, NULL, pass);
-  jsonrpc_export("Shadow.Delta", onDelta, NULL);
-  jsonrpc_export("Config.Get", onConfigGet, NULL);
-  jsonrpc_export("JS.Eval", onJsEval, NULL);
+  jsonrpc_export("Shadow.Delta", onDelta );
+  jsonrpc_export("Config.Get", onConfigGet );
+  jsonrpc_export("JS.Eval", onJsEval);
   if (url != NULL) mDashSetURL(url);
 
   srand(time(0));

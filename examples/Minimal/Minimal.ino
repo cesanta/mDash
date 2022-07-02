@@ -23,9 +23,15 @@
 void setup() {
   Serial.begin(115200);
   WiFi.begin(WIFI_NETWORK, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi connected, IP address:");
+  Serial.println(WiFi.localIP());
   mDashBegin(DEVICE_PASSWORD);
 }
 
 void loop() {
-  delay(100);
+  delay(500);
 }

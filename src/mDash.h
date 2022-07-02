@@ -96,7 +96,6 @@ void mDashCLI(unsigned char input_byte);
 #define MJSON_H
 
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -113,54 +112,40 @@ void mDashCLI(unsigned char input_byte);
 #endif
 
 #ifndef MJSON_ENABLE_MERGE
-#define MJSON_ENABLE_MERGE 0
-#elif MJSON_ENABLE_MERGE
-#define MJSON_ENABLE_NEXT 1
+#define MJSON_ENABLE_MERGE 1
 #endif
 
 #ifndef MJSON_ENABLE_PRETTY
-#define MJSON_ENABLE_PRETTY 0
-#elif MJSON_ENABLE_PRETTY
-#define MJSON_ENABLE_NEXT 1
+#define MJSON_ENABLE_PRETTY 1
 #endif
 
 #ifndef MJSON_ENABLE_NEXT
-#define MJSON_ENABLE_NEXT 0
-#endif
-
-
-#ifndef MJSON_RPC_IN_BUF_SIZE
-#define MJSON_RPC_IN_BUF_SIZE 256
-#endif
-
-#ifndef ATTR
-#define ATTR
+#define MJSON_ENABLE_NEXT 1
 #endif
 
 #ifndef MJSON_RPC_LIST_NAME
 #define MJSON_RPC_LIST_NAME "rpc.list"
 #endif
 
+#ifndef MJSON_DYNBUF_CHUNK
+#define MJSON_DYNBUF_CHUNK 256  // Allocation granularity for print_dynamic_buf
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-enum {
-  MJSON_ERROR_INVALID_INPUT = -1,
-  MJSON_ERROR_TOO_DEEP = -2,
-};
-
-enum mjson_tok {
-  MJSON_TOK_INVALID = 0,
-  MJSON_TOK_KEY = 1,
-  MJSON_TOK_STRING = 11,
-  MJSON_TOK_NUMBER = 12,
-  MJSON_TOK_TRUE = 13,
-  MJSON_TOK_FALSE = 14,
-  MJSON_TOK_NULL = 15,
-  MJSON_TOK_ARRAY = 91,
-  MJSON_TOK_OBJECT = 123,
-};
+#define MJSON_ERROR_INVALID_INPUT (-1)
+#define MJSON_ERROR_TOO_DEEP (-2)
+#define MJSON_TOK_INVALID 0
+#define MJSON_TOK_KEY 1
+#define MJSON_TOK_STRING 11
+#define MJSON_TOK_NUMBER 12
+#define MJSON_TOK_TRUE 13
+#define MJSON_TOK_FALSE 14
+#define MJSON_TOK_NULL 15
+#define MJSON_TOK_ARRAY 91
+#define MJSON_TOK_OBJECT 123
 #define MJSON_TOK_IS_VALUE(t) ((t) > 10 && (t) < 20)
 
 typedef int (*mjson_cb_t)(int ev, const char *s, int off, int len, void *ud);
@@ -170,8 +155,7 @@ typedef int (*mjson_cb_t)(int ev, const char *s, int off, int len, void *ud);
 #endif
 
 int mjson(const char *s, int len, mjson_cb_t cb, void *ud);
-enum mjson_tok mjson_find(const char *s, int len, const char *jp,
-                          const char **tokptr, int *toklen);
+int mjson_find(const char *s, int len, const char *jp, const char **, int *);
 int mjson_get_number(const char *s, int len, const char *path, double *v);
 int mjson_get_bool(const char *s, int len, const char *path, int *v);
 int mjson_get_string(const char *s, int len, const char *path, char *to, int n);
@@ -197,16 +181,19 @@ struct mjson_fixedbuf {
 };
 
 int mjson_printf(mjson_print_fn_t, void *, const char *fmt, ...);
-int mjson_vprintf(mjson_print_fn_t, void *, const char *fmt, va_list ap);
+int mjson_vprintf(mjson_print_fn_t, void *, const char *fmt, va_list *ap);
 int mjson_print_str(mjson_print_fn_t, void *, const char *s, int len);
 int mjson_print_int(mjson_print_fn_t, void *, int value, int is_signed);
 int mjson_print_long(mjson_print_fn_t, void *, long value, int is_signed);
 int mjson_print_buf(mjson_print_fn_t fn, void *, const char *buf, int len);
+int mjson_print_dbl(mjson_print_fn_t fn, void *, double, int width);
 
 int mjson_print_null(const char *ptr, int len, void *userdata);
-int mjson_print_file(const char *ptr, int len, void *userdata);
 int mjson_print_fixed_buf(const char *ptr, int len, void *userdata);
 int mjson_print_dynamic_buf(const char *ptr, int len, void *userdata);
+
+int mjson_snprintf(char *buf, size_t len, const char *fmt, ...);
+char *mjson_aprintf(const char *fmt, ...);
 
 #if MJSON_ENABLE_PRETTY
 int mjson_pretty(const char *, int, const char *, mjson_print_fn_t, void *);
@@ -224,6 +211,7 @@ void jsonrpc_init(mjson_print_fn_t, void *userdata);
 int mjson_globmatch(const char *s1, int n1, const char *s2, int n2);
 
 struct jsonrpc_request {
+  struct jsonrpc_ctx *ctx;
   const char *frame;    // Points to the whole frame
   int frame_len;        // Frame length
   const char *params;   // Points to the "params" in the request frame
@@ -241,7 +229,6 @@ struct jsonrpc_method {
   const char *method;
   int method_sz;
   void (*cb)(struct jsonrpc_request *);
-  void *cbdata;
   struct jsonrpc_method *next;
 };
 
@@ -249,19 +236,16 @@ struct jsonrpc_method {
 // exported RPC methods.
 struct jsonrpc_ctx {
   struct jsonrpc_method *methods;
-  void *userdata;
   mjson_print_fn_t response_cb;
-  int in_len;
-  char in[MJSON_RPC_IN_BUF_SIZE];
+  void *response_cb_data;
 };
 
 // Registers function fn under the given name within the given RPC context
-#define jsonrpc_ctx_export(ctx, name, fn, ud)                                \
-  do {                                                                       \
-    static struct jsonrpc_method m = {(name), sizeof(name) - 1, (fn), 0, 0}; \
-    m.cbdata = (ud);                                                         \
-    m.next = (ctx)->methods;                                                 \
-    (ctx)->methods = &m;                                                     \
+#define jsonrpc_ctx_export(ctx, name, fn)                                 \
+  do {                                                                    \
+    static struct jsonrpc_method m = {(name), sizeof(name) - 1, (fn), 0}; \
+    m.next = (ctx)->methods;                                              \
+    (ctx)->methods = &m;                                                  \
   } while (0)
 
 void jsonrpc_ctx_init(struct jsonrpc_ctx *ctx, mjson_print_fn_t, void *);
@@ -270,20 +254,16 @@ void jsonrpc_return_error(struct jsonrpc_request *r, int code,
 void jsonrpc_return_success(struct jsonrpc_request *r, const char *result_fmt,
                             ...);
 void jsonrpc_ctx_process(struct jsonrpc_ctx *ctx, const char *req, int req_sz,
-                         mjson_print_fn_t fn, void *fndata);
-void jsonrpc_ctx_process_byte(struct jsonrpc_ctx *ctx, unsigned char ch,
-                              mjson_print_fn_t fn, void *fndata);
+                         mjson_print_fn_t fn, void *fndata, void *userdata);
 
 extern struct jsonrpc_ctx jsonrpc_default_context;
+extern void jsonrpc_list(struct jsonrpc_request *r);
 
-#define jsonrpc_export(name, fn, ud) \
-  jsonrpc_ctx_export(&jsonrpc_default_context, (name), (fn), (ud))
+#define jsonrpc_export(name, fn) \
+  jsonrpc_ctx_export(&jsonrpc_default_context, (name), (fn))
 
-#define jsonrpc_process(buf, len, fn, data) \
-  jsonrpc_ctx_process(&jsonrpc_default_context, (buf), (len), (fn), (data))
-
-#define jsonrpc_process_byte(x, fn, data) \
-  jsonrpc_ctx_process_byte(&jsonrpc_default_context, (x), (fn), (data))
+#define jsonrpc_process(buf, len, fn, fnd, ud) \
+  jsonrpc_ctx_process(&jsonrpc_default_context, (buf), (len), (fn), (fnd), (ud))
 
 #define JSONRPC_ERROR_INVALID -32700    /* Invalid JSON was received */
 #define JSONRPC_ERROR_NOT_FOUND -32601  /* The method does not exist */
