@@ -744,6 +744,10 @@ void mDashTask(void *data) {
   (void) data;
 }
 
+int mDashGetState(void) {
+  return s_mDashState;
+}
+
 static void doinit(const char *id, const char *pass, const char *name,
                    const char *ts, const char *framework) {
   mount_fs(FS_ROOT);  // Do it first, to enable configuration API
