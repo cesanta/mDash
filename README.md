@@ -2,7 +2,10 @@
 
 See [Documentation](https://mdash.net/docs/) for the quick start guide.
 
-NOTE: for Arduino 1.8.10 and later, please make the following changes:
+In order to simulate an mDash device on your Mac/Linux workstation,
+register a device on mDash and run the following command from the root of
+this repo:
 
-- Change `platform.txt` as in [this PR](https://github.com/espressif/arduino-esp32/pull/4209/commits/183964aa93b7039d11813fd60aba7e8170caa4b8)
-- Change `library.properties` by commenting out the `ldflags=-lmDash` line
+```sh
+$ make -C posix ARGS="-pass DEVICE_MDASH_PASSWORD"
+```
