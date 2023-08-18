@@ -417,6 +417,35 @@ int mDashNotify(const char *name, const char *fmt, ...) {
   return res;
 }
 
+/**
+ * @brief MDash Notify Shadow without mutex lock  
+ * 
+ * @param name Type Name
+ * @param fmt Format
+ * @param ... multiple arguments
+ * @return int 
+ */
+int mDashNotify_shdw(const char *name, const char *fmt, ...) {
+  int res = 0;
+  //MDashMutexLock();
+  va_list ap;
+  if (s_conn != NULL) {
+    struct mg_iobuf io = {0, 0, 0, 512};
+    mg_rprintf(mg_pfn_iobuf, &io, "{%Q:%Q,%Q:", "method", name, "params");
+    va_start(ap, fmt);
+    mg_vrprintf(mg_pfn_iobuf, &io, fmt, &ap);
+    va_end(ap);
+    mg_rprintf(mg_pfn_iobuf, &io, "}");
+    if (io.buf != NULL) {
+      mg_ws_send(s_conn, (char *) io.buf, io.len, WEBSOCKET_OP_TEXT);
+    }
+    mg_iobuf_free(&io);
+    res = 1;
+  }
+  //MDashMutexUnlock();
+  return res;
+}
+
 static void rpc_ota_begin(struct mg_rpc_req *r) {
   if (s_ota_size) {
     mg_rpc_err(r, 500, "%Q", "OTA already in progress");
