@@ -819,3 +819,10 @@ void mDashInit(const char *id, const char *pass, const char *name,
   xTaskCreatePinnedToCore(&mDashTask, "mDashTask", 16384, 0, 5, 0, CPU_CORE);
   MDashMutexUnlock();
 }
+
+int mDashOTAPercent(void){
+  if (s_ota_size == 0) 
+    return 0; // Or an error code if you prefer
+    
+  return((int) (s_ota_written * 100 / s_ota_size));
+}

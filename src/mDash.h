@@ -49,6 +49,7 @@ int mDashConfigGet(const char *name, char *buf, int bufsize);
 int mDashConfigSet(const char *name, const char *value);
 int mDashConfigReset(void);
 void mDashPoll(void);
+int mDashOTAPercent(void);
 
 // Registered RPC handlers. Use mg_rpc_add() to add new handlers
 extern struct mg_rpc *g_rpcs;
