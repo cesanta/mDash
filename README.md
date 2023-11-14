@@ -9,3 +9,17 @@ this repo:
 ```sh
 $ make -C posix ARGS="-pass DEVICE_MDASH_PASSWORD"
 ```
+
+Firmware V1.2.17:
+
+1. Resolved the bug on [mDashShadowUpdate()](https://github.com/cesanta/mDash/issues/22).
+2. Added mDashNotify_shdw() for mDashShadowUpdate() with removal of MutexLock.
+
+Firmware V1.2.17X2:
+
+1. Added a function mDashOTAPercent()
+
+Firmware V1.2.17X3:
+
+1. Resolved the Mdash task exit when using mDashNotify().
+2. Removed the Mutex locks in mDashNotify()

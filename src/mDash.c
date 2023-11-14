@@ -398,7 +398,7 @@ static void rpc_fs_list(struct mg_rpc_req *r) {
 
 int mDashNotify(const char *name, const char *fmt, ...) {
   int res = 0;
-  MDashMutexLock();
+  //MDashMutexLock();
   va_list ap;
   if (s_conn != NULL) {
     struct mg_iobuf io = {0, 0, 0, 512};
@@ -413,7 +413,36 @@ int mDashNotify(const char *name, const char *fmt, ...) {
     mg_iobuf_free(&io);
     res = 1;
   }
-  MDashMutexUnlock();
+  //MDashMutexUnlock();
+  return res;
+}
+
+/**
+ * @brief MDash Notify Shadow without mutex lock  
+ * 
+ * @param name Type Name
+ * @param fmt Format
+ * @param ... multiple arguments
+ * @return int 
+ */
+int mDashNotify_shdw(const char *name, const char *fmt, ...) {
+  int res = 0;
+  //MDashMutexLock();
+  va_list ap;
+  if (s_conn != NULL) {
+    struct mg_iobuf io = {0, 0, 0, 512};
+    mg_rprintf(mg_pfn_iobuf, &io, "{%Q:%Q,%Q:", "method", name, "params");
+    va_start(ap, fmt);
+    mg_vrprintf(mg_pfn_iobuf, &io, fmt, &ap);
+    va_end(ap);
+    mg_rprintf(mg_pfn_iobuf, &io, "}");
+    if (io.buf != NULL) {
+      mg_ws_send(s_conn, (char *) io.buf, io.len, WEBSOCKET_OP_TEXT);
+    }
+    mg_iobuf_free(&io);
+    res = 1;
+  }
+  //MDashMutexUnlock();
   return res;
 }
 
@@ -789,4 +818,11 @@ void mDashInit(const char *id, const char *pass, const char *name,
   doinit(id, pass, name, ts, framework);
   xTaskCreatePinnedToCore(&mDashTask, "mDashTask", 16384, 0, 5, 0, CPU_CORE);
   MDashMutexUnlock();
+}
+
+int mDashOTAPercent(void){
+  if (s_ota_size == 0) 
+    return 0; // Or an error code if you prefer
+    
+  return((int) (s_ota_written * 100 / s_ota_size));
 }

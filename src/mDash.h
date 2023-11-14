@@ -38,6 +38,10 @@ int mDashStore(const char *topic, const char *json_fmt, ...);
 
 // Send notification frame to mDash
 int mDashNotify(const char *name, const char *fmt, ...);
+
+// Send notification of shadow to Mdash without Mutex lock
+int mDashNotify_shdw(const char *name, const char *fmt, ...);
+
 #define mDashShadowUpdate(fmt, ...) \
   mDashNotify("Dash.Shadow.Update", (fmt), __VA_ARGS__)
 
@@ -45,6 +49,7 @@ int mDashConfigGet(const char *name, char *buf, int bufsize);
 int mDashConfigSet(const char *name, const char *value);
 int mDashConfigReset(void);
 void mDashPoll(void);
+int mDashOTAPercent(void);
 
 // Registered RPC handlers. Use mg_rpc_add() to add new handlers
 extern struct mg_rpc *g_rpcs;
