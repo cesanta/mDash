@@ -18,3 +18,8 @@ Firmware V1.2.17:
 Firmware V1.2.17X2:
 
 1. Added a function mDashOTAPercent()
+
+Firmware V1.2.17X3:
+
+1. Resolved the Mdash task exit when using mDashNotify().
+2. Removed the Mutex locks in mDashNotify()

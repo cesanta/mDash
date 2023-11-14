@@ -43,7 +43,7 @@ int mDashNotify(const char *name, const char *fmt, ...);
 int mDashNotify_shdw(const char *name, const char *fmt, ...);
 
 #define mDashShadowUpdate(fmt, ...) \
-  mDashNotify_shdw("Dash.Shadow.Update", (fmt), __VA_ARGS__)
+  mDashNotify("Dash.Shadow.Update", (fmt), __VA_ARGS__)
 
 int mDashConfigGet(const char *name, char *buf, int bufsize);
 int mDashConfigSet(const char *name, const char *value);

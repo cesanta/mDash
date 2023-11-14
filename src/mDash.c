@@ -398,7 +398,7 @@ static void rpc_fs_list(struct mg_rpc_req *r) {
 
 int mDashNotify(const char *name, const char *fmt, ...) {
   int res = 0;
-  MDashMutexLock();
+  //MDashMutexLock();
   va_list ap;
   if (s_conn != NULL) {
     struct mg_iobuf io = {0, 0, 0, 512};
@@ -413,7 +413,7 @@ int mDashNotify(const char *name, const char *fmt, ...) {
     mg_iobuf_free(&io);
     res = 1;
   }
-  MDashMutexUnlock();
+  //MDashMutexUnlock();
   return res;
 }
 
