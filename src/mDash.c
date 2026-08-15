@@ -17,6 +17,7 @@
 // SPDX-License-Identifier: GPL-2.0 or commercial
 
 #include "mDash.h"
+#include "mongoose.h"
 
 static const char *s_mDashAppName = "arduino";
 static const char *s_mDashFramework = "?";
@@ -24,7 +25,7 @@ static const char *s_mDashPassword = NULL;
 static const char *s_mDashPublicKey = NULL;
 static const char *s_mDashBuildTime = NULL;
 static const char *s_mDashURL = "wss://mdash.net/api/v2/rpc";
-static int s_mDashLogLevel = MG_LL_INFO;
+static int s_mDashLogLevel = MG_LL_DEBUG;
 static int s_mDashState = MDASH_STATE_NETWORK_LOST;
 static struct mg_connection *s_conn;         // Cloud connection
 static struct mg_connection *s_sntp = NULL;  // SNTP connection
@@ -72,6 +73,7 @@ static const char *s_pem =
 #include <esp_mac.h>
 #include <esp_ota_ops.h>
 #include <esp_spiffs.h>
+#include <esp_idf_version.h>
 #include <freertos/timers.h>
 #define HTTP_URL "http://0.0.0.0:80"
 #define MDASH_ARCH "esp32"
@@ -81,18 +83,30 @@ static const char *s_pem =
 static const esp_partition_t *s_update_partition;
 static esp_ota_handle_t s_update_handle;
 
+// Return idle task handle; API renamed in IDF 5.2
+static TaskHandle_t idle_task_handle(void) {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+  return xTaskGetIdleTaskHandleForCore(CPU_CORE);
+#else
+  return xTaskGetIdleTaskHandleForCPU(CPU_CORE);
+#endif
+}
 static void enable_wdt(void) {
-  esp_task_wdt_add(xTaskGetIdleTaskHandleForCPU(CPU_CORE));
+  esp_task_wdt_add(idle_task_handle());
 }
 static void disable_wdt(void) {
-  esp_task_wdt_delete(xTaskGetIdleTaskHandleForCPU(CPU_CORE));
+  esp_task_wdt_delete(idle_task_handle());
 }
 static unsigned long mDashGetFreeRam(void) {
   return xPortGetFreeHeapSize();
 }
+static void restart_timer_cb(TimerHandle_t timer) {
+  (void) timer;
+  esp_restart();
+}
 static void reboot_with_delay(int delay_ms) {
-  void *h = xTimerCreate("reboot", pdMS_TO_TICKS(delay_ms), 0, NULL,
-                         (void (*)(void *)) esp_restart);
+  TimerHandle_t h = xTimerCreate("reboot", pdMS_TO_TICKS(delay_ms), 0, NULL,
+                                 restart_timer_cb);
   xTimerStart(h, 0);
 }
 static SemaphoreHandle_t s_sem = NULL;
@@ -142,7 +156,7 @@ static void MDashMutexLock(void) {
 static void MDashMutexUnlock(void) {
 }
 static bool mount_fs(const char *path) {
-  if (path != NULL) mkdir(path, 0644);
+  if (path != NULL) mkdir(path, 0755);
   return true;
 }
 static int esp_reset_reason(void) {
@@ -220,12 +234,14 @@ static void rpc_get_info(struct mg_rpc_req *r) {
   char buf[21];
   asctimetoiso(buf, s_mDashBuildTime);
   mg_rpc_ok(r,
-            "{%Q:\"%s-%s\",%Q:%Q,%Q:%Q,%Q:%Q,%Q:%lu,%Q:%lu,%Q:%Q,%Q:%H,%Q:%Q}",
-            "fw_version", MDASH_VERSION, s_mDashFramework, "arch", MDASH_ARCH,
-            "fw_id", buf, "app", s_mDashAppName, "uptime", uptime, "ram_free",
-            mDashGetFreeRam(), "reboot_reason", get_reset_reason(), "id",
-            sizeof(chipid), &chipid, "public_key",
-            s_mDashPublicKey == NULL ? "" : s_mDashPublicKey);
+            "{%m:\"%s-%s\",%m:%m,%m:%m,%m:%m,%m:%lu,%m:%lu,%m:%m,%m:%m,%m:%m}",
+            MG_ESC("fw_version"), MDASH_VERSION, s_mDashFramework, MG_ESC("arch"),
+            MG_ESC(MDASH_ARCH), MG_ESC("fw_id"), MG_ESC(buf), MG_ESC("app"),
+            MG_ESC(s_mDashAppName), MG_ESC("uptime"), uptime, MG_ESC("ram_free"),
+            mDashGetFreeRam(), MG_ESC("reboot_reason"), MG_ESC(get_reset_reason()),
+            MG_ESC("id"), mg_print_hex, (int) sizeof(chipid), &chipid,
+            MG_ESC("public_key"),
+            MG_ESC(s_mDashPublicKey == NULL ? "" : s_mDashPublicKey));
 }
 
 static void rpc_reboot(struct mg_rpc_req *r) {
@@ -237,13 +253,13 @@ static void rpc_sys_set(struct mg_rpc_req *r) {
   char *name = mg_json_get_str(r->frame, "$.params.name");
   char *value = mg_json_get_str(r->frame, "$.params.value");
   if (name == NULL) {
-    mg_rpc_err(r, 400, "%Q", "name and value expected");
+    mg_rpc_err(r, 400, "%m", MG_ESC("name and value expected"));
   } else {
     int result = mDashConfigSet(name, value);
-    mg_rpc_ok(r, "{%Q:%d}", "result", result);
+    mg_rpc_ok(r, "{%m:%d}", MG_ESC("result"), result);
   }
-  free(name);
-  free(value);
+  mg_free(name);
+  mg_free(value);
 }
 
 static void rpc_fs_format(struct mg_rpc_req *r) {
@@ -266,16 +282,16 @@ static void rpc_fs_mount(struct mg_rpc_req *r) {
   char *path = mg_json_get_str(r->frame, "$.params.path");
 #if defined(ESP_PLATFORM)
   if (esp_spiffs_mounted(NULL)) {
-    mg_rpc_err(r, 500, "%Q", "already mounted");
+    mg_rpc_err(r, 500, "%m", MG_ESC("already mounted"));
   } else if (mount_fs(path == NULL ? FS_ROOT : path)) {
     mg_rpc_ok(r, "true");
   } else {
-    mg_rpc_err(r, 500, "%Q", "mount failed");
+    mg_rpc_err(r, 500, "%m", MG_ESC("mount failed"));
   }
 #else
   mg_rpc_ok(r, "true");
 #endif
-  free(path);
+  mg_free(path);
 }
 
 static void rpc_fs_put(struct mg_rpc_req *r) {
@@ -283,26 +299,29 @@ static void rpc_fs_put(struct mg_rpc_req *r) {
   char *name = mg_json_get_str(r->frame, "$.params.filename");
   int len = 0, ofs = mg_json_get(r->frame, "$.params.data", &len);
   mg_json_get_bool(r->frame, "$.params.append", &append);
-  if (len <= 0 || r->frame.ptr[ofs] != '"' || name == NULL) {
-    mg_rpc_err(r, 500, "%Q", "data and filename required");
+  if (len <= 0 || r->frame.buf[ofs] != '"' || name == NULL) {
+    mg_rpc_err(r, 500, "%m", MG_ESC("data and filename required"));
   } else {
     char path[MG_PATH_MAX];
     FILE *fp;
     mg_snprintf(path, sizeof(path), "%s/%s", FS_ROOT, name);
     if ((fp = fopen(path, append ? "ab" : "wb")) == NULL) {
-      mg_rpc_err(r, 500, "\"fopen(%q): %d\"", path, errno);
+      mg_rpc_err(r, 500, "\"fopen(%M): %d\"", MG_ESC(path), errno);
     } else {
-      char *data = (char *) &r->frame.ptr[ofs];
-      int n = mg_base64_decode(data + 1, len - 2, data);  // Decode in-place
+      char *data = (char *) &r->frame.buf[ofs];
+      int n = mg_base64_decode(data + 1, len - 2, data,
+                               r->frame.len - ofs);  // Decode in-place
       if ((int) fwrite(data, 1, n, fp) != n) {
-        mg_rpc_err(r, 500, "\"fwrite(%q) %d, errno %d\"", path, n, errno);
+        mg_rpc_err(r, 500, "\"fwrite(%M) %d, errno %d\"", MG_ESC(path), n,
+                   errno);
       } else {
-        mg_rpc_ok(r, "{%Q:%Q,%Q:%d}", "filename", name, "written", n);
+        mg_rpc_ok(r, "{%m:%m,%m:%d}", MG_ESC("filename"), MG_ESC(name),
+                  MG_ESC("written"), n);
       }
       fclose(fp);
     }
   }
-  free(name);
+  mg_free(name);
 }
 
 static void rpc_fs_get(struct mg_rpc_req *r) {
@@ -311,34 +330,36 @@ static void rpc_fs_get(struct mg_rpc_req *r) {
   char *chunk = NULL;
   char *name = mg_json_get_str(r->frame, "$.params.filename");
   if (name == NULL) {
-    mg_rpc_err(r, 500, "%Q", "filename required");
+    mg_rpc_err(r, 500, "%m", MG_ESC("filename required"));
   } else if ((chunk = (char *) malloc(len)) == NULL) {
-    mg_rpc_err(r, 500, "%Q", "OOM");
+    mg_rpc_err(r, 500, "%m", MG_ESC("OOM"));
   } else {
     FILE *fp = NULL;
     char path[MG_PATH_MAX];
     mg_snprintf(path, sizeof(path), "%s/%s", FS_ROOT, name);
     if ((fp = fopen(path, "rb")) == NULL) {
-      mg_rpc_err(r, 500, "\"fopen(%q): %d\"", path, errno);
+      mg_rpc_err(r, 500, "\"fopen(%M): %d\"", MG_ESC(path), errno);
     } else {
       fseek(fp, offset, SEEK_SET);
       long n = fread(chunk, 1, len, fp);
       fseek(fp, 0, SEEK_END);
       long total = ftell(fp);
-      mg_rpc_ok(r, "{%Q:%Q,%Q:%ld,%Q:%ld,%Q:%V}", "filename", name, "offset",
-                offset, "left", total - (n + offset), "data", (int) n, chunk);
+      mg_rpc_ok(r, "{%m:%m,%m:%ld,%m:%ld,%m:%m}", MG_ESC("filename"),
+                MG_ESC(name), MG_ESC("offset"), offset, MG_ESC("left"),
+                total - (n + offset), MG_ESC("data"), mg_print_base64, (int) n,
+                chunk);
       fclose(fp);
     }
   }
-  free(chunk);
-  free(name);
+  mg_free(chunk);
+  mg_free(name);
 }
 
 static void rpc_fs_rename(struct mg_rpc_req *r) {
   char *src = mg_json_get_str(r->frame, "$.params.src");
   char *dst = mg_json_get_str(r->frame, "$.params.dst");
   if (src == NULL || dst == NULL) {
-    mg_rpc_err(r, 500, "%Q", "src and dst missing");
+    mg_rpc_err(r, 500, "%m", MG_ESC("src and dst missing"));
   } else {
     char a[MG_PATH_MAX], b[MG_PATH_MAX];
     mg_snprintf(a, sizeof(a), "%s/%s", FS_ROOT, src);
@@ -350,14 +371,14 @@ static void rpc_fs_rename(struct mg_rpc_req *r) {
       mg_rpc_ok(r, "true");
     }
   }
-  free(src);
-  free(dst);
+  mg_free(src);
+  mg_free(dst);
 }
 
 static void rpc_fs_remove(struct mg_rpc_req *r) {
   char *name = mg_json_get_str(r->frame, "$.params.filename");
   if (name == NULL) {
-    mg_rpc_err(r, 500, "%Q", "filename required");
+    mg_rpc_err(r, 500, "%m", MG_ESC("filename required"));
   } else {
     char path[MG_PATH_MAX];
     mg_snprintf(path, sizeof(path), "%s/%s", FS_ROOT, name);
@@ -367,7 +388,7 @@ static void rpc_fs_remove(struct mg_rpc_req *r) {
       mg_rpc_ok(r, "true");
     }
   }
-  free(name);
+  mg_free(name);
 }
 
 static size_t fslister(mg_pfn_t pfn, void *pfn_data, va_list *ap) {
@@ -380,7 +401,7 @@ static size_t fslister(mg_pfn_t pfn, void *pfn_data, va_list *ap) {
         strcmp((const char *) dp->d_name, "..") == 0) {
       continue;
     }
-    n += mg_rprintf(pfn, pfn_data, "%s%Q", comma, dp->d_name);
+    n += mg_xprintf(pfn, pfn_data, "%s%m", comma, MG_ESC(dp->d_name));
     comma = ",";
   }
   return n;
@@ -389,7 +410,7 @@ static size_t fslister(mg_pfn_t pfn, void *pfn_data, va_list *ap) {
 static void rpc_fs_list(struct mg_rpc_req *r) {
   DIR *dirp = opendir(FS_ROOT);
   if (dirp == NULL) {
-    mg_rpc_err(r, 500, "%Q", "cannot open fs root");
+    mg_rpc_err(r, 500, "%m", MG_ESC("cannot open fs root"));
   } else {
     mg_rpc_ok(r, "[%M]", fslister, dirp);
     closedir(dirp);
@@ -402,11 +423,12 @@ int mDashNotify(const char *name, const char *fmt, ...) {
   va_list ap;
   if (s_conn != NULL) {
     struct mg_iobuf io = {0, 0, 0, 512};
-    mg_rprintf(mg_pfn_iobuf, &io, "{%Q:%Q,%Q:", "method", name, "params");
+    mg_xprintf(mg_pfn_iobuf, &io, "{%m:%m,%m:", MG_ESC("method"), MG_ESC(name),
+               MG_ESC("params"));
     va_start(ap, fmt);
-    mg_vrprintf(mg_pfn_iobuf, &io, fmt, &ap);
+    mg_vxprintf(mg_pfn_iobuf, &io, fmt, &ap);
     va_end(ap);
-    mg_rprintf(mg_pfn_iobuf, &io, "}");
+    mg_xprintf(mg_pfn_iobuf, &io, "}");
     if (io.buf != NULL) {
       mg_ws_send(s_conn, (char *) io.buf, io.len, WEBSOCKET_OP_TEXT);
     }
@@ -419,7 +441,7 @@ int mDashNotify(const char *name, const char *fmt, ...) {
 
 static void rpc_ota_begin(struct mg_rpc_req *r) {
   if (s_ota_size) {
-    mg_rpc_err(r, 500, "%Q", "OTA already in progress");
+    mg_rpc_err(r, 500, "%m", MG_ESC("OTA already in progress"));
   } else {
     double dv;
     if (mg_json_get_num(r->frame, "$.params.size", &dv)) s_ota_size = dv;
@@ -431,9 +453,9 @@ static void rpc_ota_begin(struct mg_rpc_req *r) {
     enable_wdt();
     MG_INFO(("Starting OTA. partition=%p, err=%d", s_update_partition, err));
 #else
-    MG_INFO(("Starting OTA: %.*s", (int) r->frame.len, r->frame.ptr));
+    MG_INFO(("Starting OTA: %.*s", (int) r->frame.len, r->frame.buf));
 #endif
-    mDashNotify("State.Set", "{%Q:{%Q:0}}", "ota", "percent");
+    mDashNotify("State.Set", "{%m:{%m:0}}", MG_ESC("ota"), MG_ESC("percent"));
     mg_rpc_ok(r, "true");
   }
 }
@@ -441,14 +463,15 @@ static void rpc_ota_begin(struct mg_rpc_req *r) {
 static void rpc_ota_write(struct mg_rpc_req *r) {
   int len = 0, ofs = 0;
   if (s_ota_size == 0) {
-    mg_rpc_err(r, 500, "%Q", "call OTA.Begin");
+    mg_rpc_err(r, 500, "%m", MG_ESC("call OTA.Begin"));
   } else if ((ofs = mg_json_get(r->frame, "$.params.data", &len)) <= 0 ||
-             r->frame.ptr[ofs] != '"') {
-    mg_rpc_err(r, 500, "%Q", "data required");
+             r->frame.buf[ofs] != '"') {
+    mg_rpc_err(r, 500, "%m", MG_ESC("data required"));
   } else {
     // Decode in-place
-    char *data = (char *) &r->frame.ptr[ofs];
-    int n = mg_base64_decode(data + 1, len - 2, data);  // Decode in-place
+    char *data = (char *) &r->frame.buf[ofs];
+    int n = mg_base64_decode(data + 1, len - 2, data,
+                             r->frame.len - ofs);  // Decode in-place
 
 #if defined(ESP_PLATFORM)
     disable_wdt();
@@ -463,15 +486,15 @@ static void rpc_ota_write(struct mg_rpc_req *r) {
 
     s_ota_written += n;
     MG_INFO(("OTA write: got %d bytes", n));
-    mDashNotify("State.Set", "{%Q:{%Q:%d}}", "ota", "percent",
+    mDashNotify("State.Set", "{%m:{%m:%d}}", MG_ESC("ota"), MG_ESC("percent"),
                 (int) (s_ota_written * 100 / s_ota_size));
-    mg_rpc_ok(r, "{%Q:%d}", "queued", n);
+    mg_rpc_ok(r, "{%m:%d}", MG_ESC("queued"), n);
   }
 }
 
 static void rpc_ota_end(struct mg_rpc_req *r) {
   s_ota_size = s_ota_written = 0;
-  mDashNotify("State.Set", "{%Q:{%Q:null}}", "ota", "percent");
+  mDashNotify("State.Set", "{%m:{%m:null}}", MG_ESC("ota"), MG_ESC("percent"));
   MG_INFO(("OTA finished"));
 #if defined(ESP_PLATFORM)
   esp_err_t err = esp_ota_end(s_update_handle);
@@ -510,7 +533,8 @@ int mDashConfigGet(const char *name, char *buf, int bufsize) {
   FILE *fp = fopen(MDASH_CONFIG_FILE_NAME, "r");
   int result = 0;
   if (fp == NULL) {
-    MG_DEBUG(("%s: cannot open config file: %d", name, errno));
+    MG_DEBUG(("%s: cannot open config file %s: %d", name,
+              MDASH_CONFIG_FILE_NAME, errno));
     result = -1;  // Fail - cannot open file
     goto out;
   }
@@ -583,7 +607,7 @@ int mDashStore(const char *topic, const char *fmt, ...) {
   fprintf(fp, "%s ", topic);
   va_list ap;
   va_start(ap, fmt);
-  mg_vrprintf(pfn_file, fp, fmt, &ap);
+  mg_vxprintf(pfn_file, fp, fmt, &ap);
   va_end(ap);
   fputc('\n', fp);
   long size = ftell(fp);
@@ -602,7 +626,7 @@ int mDashStore(const char *topic, const char *fmt, ...) {
 static char *gen_public_key(char *buf, size_t len) {
   uint8_t tmp[len * 3 / 4 - 3];
   mg_random(tmp, sizeof(tmp));
-  mg_base64_encode(tmp, sizeof(tmp), buf);
+  mg_base64_encode(tmp, sizeof(tmp), buf, len);
   return buf;
 }
 
@@ -613,8 +637,8 @@ static const char *fromcfg(const char *ptr, const char *var) {
   return ptr;
 }
 
-static bool s_time_set;
-static void sntpcb(struct mg_connection *c, int ev, void *evd, void *fnd) {
+static bool s_time_set = true;
+static void sntpcb(struct mg_connection *c, int ev, void *evd) {
   if (ev == MG_EV_SNTP_TIME) {
     uint64_t ms = *(uint64_t *) evd;
     struct timeval tv = {.tv_sec = ms / 1000, .tv_usec = (ms % 1000) * 1000};
@@ -624,14 +648,15 @@ static void sntpcb(struct mg_connection *c, int ev, void *evd, void *fnd) {
   } else if (ev == MG_EV_CLOSE) {
     s_sntp = NULL;
   }
-  (void) c, (void) fnd;
+  (void) c;
 }
 
-static void dev_cb(struct mg_connection *c, int ev, void *evd, void *fnd) {
+static void dev_cb(struct mg_connection *c, int ev, void *evd) {
   if (ev == MG_EV_CONNECT) {
+    // c->is_hexdumping = true;
     if (mg_url_is_ssl(s_mDashURL)) {
       struct mg_str host = mg_url_host(s_mDashURL);
-      struct mg_tls_opts opts = {.ca = s_pem, .srvname = host};
+      struct mg_tls_opts opts = {.ca = mg_str(s_pem), .name = host};
       mg_tls_init(s_conn, &opts);
     }
   }
@@ -642,8 +667,8 @@ static void dev_cb(struct mg_connection *c, int ev, void *evd, void *fnd) {
   } else if (ev == MG_EV_WS_MSG) {
     struct mg_ws_message *wm = evd;
     struct mg_str s = wm->data;
-    while (s.len > 0 && isspace((uint8_t) s.ptr[s.len - 1])) s.len--;
-    MG_INFO(("RPC: %.*s", (int) s.len, s.ptr));
+    while (s.len > 0 && isspace((uint8_t) s.buf[s.len - 1])) s.len--;
+    MG_INFO(("RPC: %.*s", (int) s.len, s.buf));
     struct mg_iobuf io = {0, 0, 0, 512};
     struct mg_rpc_req r = {.head = &g_rpcs,
                            .rpc = NULL,
@@ -656,7 +681,7 @@ static void dev_cb(struct mg_connection *c, int ev, void *evd, void *fnd) {
       MG_INFO(("     %s", io.buf));
       mg_ws_send(c, (const char *) io.buf, io.len, WEBSOCKET_OP_TEXT);
     } else {
-      MG_VERBOSE(("%s", "RPC unhandled"));
+      MG_DEBUG(("%s", "RPC unhandled"));
     }
     mg_iobuf_free(&io);
   } else if (ev == MG_EV_CLOSE) {
@@ -666,7 +691,7 @@ static void dev_cb(struct mg_connection *c, int ev, void *evd, void *fnd) {
       s_mDashState = MDASH_STATE_NETWORK_CONNECTED;
     // mDashTriggerEvent(s_mDashState, NULL);
   }
-  (void) c, (void) fnd;
+  (void) c;
 }
 
 static int sv(struct mg_str json, const char *path, const char *name) {
@@ -674,56 +699,56 @@ static int sv(struct mg_str json, const char *path, const char *name) {
   char *val = mg_json_get_str(json, path);
   if (val != NULL) {
     mDashConfigSet(name, val);
-    free(val);
+    mg_free(val);
     set = true;
   }
   return set;
 }
 
-static void httpcb(struct mg_connection *c, int ev, void *evd, void *fnd) {
+static void httpcb(struct mg_connection *c, int ev, void *evd) {
   const char *extra_headers =
       "Access-Control-Allow-Origin: *\r\n"
       "Content-Type: application/json\r\n";
   if (ev == MG_EV_HTTP_MSG) {
     struct mg_http_message *hm = evd;
-    if (mg_http_match_uri(hm, "/GetKey")) {
+    if (mg_match(hm->uri, mg_str("/GetKey"), NULL)) {
       if (s_mDashPublicKey != NULL) {
-        mg_http_reply(c, 200, extra_headers, "{%Q:%Q}\n", "result",
-                      s_mDashPublicKey);
+        mg_http_reply(c, 200, extra_headers, "{%m:%m}\n", MG_ESC("result"),
+                      MG_ESC(s_mDashPublicKey));
       } else {
-        mg_http_reply(c, 200, extra_headers, "{%Q:%Q}\n", "error",
-                      "key not set");
+        mg_http_reply(c, 200, extra_headers, "{%m:%m}\n", MG_ESC("error"),
+                      MG_ESC("key not set"));
       }
-    } else if (mg_http_match_uri(hm, "/setup") && hm->body.len > 0) {
+    } else if (mg_match(hm->uri, mg_str("/setup"), NULL) && hm->body.len > 0) {
       if (sv(hm->body, "$.ssid", "wifi.sta.ssid") &&
           sv(hm->body, "$.pass", "wifi.sta.pass")) {
-        mg_http_reply(c, 200, extra_headers, "{%Q:true}\n", "result");
+        mg_http_reply(c, 200, extra_headers, "{%m:true}\n", MG_ESC("result"));
         reboot_with_delay(3000);
       } else {
-        mg_http_reply(c, 200, extra_headers, "{%Q:%Q}\n", "error",
-                      "set ssid and pass");
+        mg_http_reply(c, 200, extra_headers, "{%m:%m}\n", MG_ESC("error"),
+                      MG_ESC("set ssid and pass"));
       }
     } else {
-      mg_http_reply(c, 200, extra_headers, "{%Q:%Q}\n", "error",
-                    "use /setup endpoint");
+      mg_http_reply(c, 200, extra_headers, "{%m:%m}\n", MG_ESC("error"),
+                    MG_ESC("use /setup endpoint"));
     }
   }
-  (void) fnd;
 }
 
 static void timercb(void *userdata) {
   struct mg_mgr *mgr = userdata;
-  MG_DEBUG(("ram: %lu, %d %p/%p/%p", mDashGetFreeRam(), s_mDashState, s_conn,
-            s_http, s_sntp));
+  MG_DEBUG(("ram: %lu, time_set: %d, %d %p/%p/%p", mDashGetFreeRam(),
+            s_time_set, s_mDashState, s_conn, s_http, s_sntp));
   if (s_conn == NULL && s_mDashState == MDASH_STATE_NETWORK_CONNECTED &&
-      s_mDashPassword != NULL && s_time_set) {
+      s_mDashPassword != NULL && s_time_set == true) {
     s_conn = mg_ws_connect(mgr, s_mDashURL, dev_cb, NULL,
                            "Origin: %s\r\n"
                            "Authorization: Bearer %s\r\n",
                            s_mDashURL, s_mDashPassword);
   }
-  if (s_sntp == NULL && (s_mDashState == MDASH_STATE_NETWORK_CONNECTED ||
-                         s_mDashState == MDASH_STATE_CLOUD_CONNECTED)) {
+  if (s_time_set == false && s_sntp == NULL &&
+      (s_mDashState == MDASH_STATE_NETWORK_CONNECTED ||
+       s_mDashState == MDASH_STATE_CLOUD_CONNECTED)) {
     s_sntp = mg_sntp_connect(mgr, NULL, sntpcb, NULL);
   }
   // Trigger periodic STNP reconnect, and time resync, by closing s_sntp
@@ -734,8 +759,10 @@ static void timercb(void *userdata) {
 }
 
 void mDashPoll(void) {
+  static uint64_t timer = 0;
   MDashMutexLock();
-  mg_mgr_poll(&s_mgr, 50);
+  mg_mgr_poll(&s_mgr, 10);
+  if (mg_timer_expired(&timer, 1000, mg_millis())) timercb(&s_mgr);
   MDashMutexUnlock();
 }
 
@@ -776,9 +803,7 @@ static void doinit(const char *id, const char *pass, const char *name,
   mg_log_set(s_mDashLogLevel);
   init_rpcs();
   mg_mgr_init(&s_mgr);
-  mg_timer_add(&s_mgr, 1000, MG_TIMER_REPEAT | MG_TIMER_RUN_NOW, timercb,
-               &s_mgr);
-  MG_INFO(("Initialised, id %s", id));
+  MG_INFO(("Initialised, ID %s", id ? id : "<null>"));
 }
 
 void mDashInit(const char *id, const char *pass, const char *name,

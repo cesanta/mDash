@@ -23,13 +23,13 @@ int main(int argc, char *argv[]) {
       // wifi = NULL;  // if WiFi is NULL, mDash lib starts HTTP server
     } else {
       MG_ERROR(("Invalid option: [%s]\n", argv[i]));
-      MG_ERROR(("Usage: %s --pass DEVICE_PASSWORD", argv[0]));
+      MG_ERROR(("Usage: %s --pass MDASH_DEVICE_KEY", argv[0]));
       return 1;
     }
   }
 
-  if (pass == NULL) {
-    MG_ERROR(("%s", "Please specify --pass DEVICE_PASSWORD"));
+  if (pass == NULL || pass[0] == '\0') {
+    MG_ERROR(("%s", "Please specify --pass MDASH_DEVICE_KEY"));
     return 1;
   }
 
@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
   signal(SIGTERM, sighandler);
   signal(SIGPIPE, SIG_IGN);
 
+  // mg_boot_timestamp_ms = time(0) * 1000;
   mDashBegin(pass);
   if (loglevel > 0) mg_log_set(loglevel);
   while (s_sig == 0) mDashPoll();

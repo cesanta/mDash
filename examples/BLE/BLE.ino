@@ -27,7 +27,8 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
     int plen = d.getPayloadLength();
 
     snprintf(addr, sizeof(addr), "%s", d.getAddress().toString().c_str());
-    mDashNotify("DB.Save", "{\"mac\":%Q,\"adv\":%H}", addr, plen, p);
+    mDashNotify("DB.Save", "{\"mac\":%m,\"adv\":%m}", MG_ESC(addr), mg_print_hex,
+                plen, p);
     Serial.printf("Advertised Device: %s\n", addr);
   }
 };
